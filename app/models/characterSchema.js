@@ -1,9 +1,18 @@
 import mongoose from "mongoose";
 
 const characterSchema = new mongoose.Schema({
-    name: {type: String,},
-    house: {type: String,},
-    titles: {type: String,},
+    name: {
+        type: String,
+        required: true
+    },
+    house: {
+        type: String,
+        required: true
+    },
+    title: {
+        type: String,
+        required: true
+    },
 });
 
 const Character = mongoose.model("Character", characterSchema);
