@@ -6,7 +6,7 @@ const app = express();
 
 /* 🔍 GLOBAL REQUEST LOGGER */
 app.use((req, res, next) => {
-    console.log("➡️ Incoming request:", req.method, req.url);
+    console.log("Incoming request:", req.method, req.url);
     next();
 });
 
@@ -17,7 +17,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 
     if (req.method === "OPTIONS") {
-        console.log("🧭 OPTIONS request handled");
+        console.log("OPTIONS request handled");
         return res.sendStatus(204);
     }
     next();
@@ -32,7 +32,7 @@ app.use((req, res, next) => {
         !accept.includes("application/json") &&
         accept !== "*/*"
     ) {
-        console.log("❌ Rejecting non-JSON Accept header:", accept);
+        console.log("Rejecting non-JSON Accept header:", accept);
         return res.status(406).json({message: "Only application/json is supported"});
     }
 
@@ -47,7 +47,7 @@ app.use("/characters", characterRoutes);
 
 /* ROOT TEST ROUTE */
 app.get("/", (req, res) => {
-    console.log("🏠 Root route hit");
+    console.log("Root route hit");
     res.send("Hello World!");
 });
 
@@ -55,13 +55,13 @@ app.get("/", (req, res) => {
 const startServer = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI);
-        console.log("✅ MongoDB connected");
+        console.log("MongoDB connected");
 
         app.listen(8000, () => {
-            console.log("🚀 Server running on port 8000");
+            console.log("Server running on port 8000");
         });
     } catch (err) {
-        console.error("🔥 Database connection failed", err);
+        console.error("Database connection failed", err);
     }
 };
 
