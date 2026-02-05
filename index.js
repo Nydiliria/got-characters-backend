@@ -2,32 +2,24 @@ import express from "express";
 import mongoose from "mongoose";
 import characterRoutes from "./app/routes/characters.js";
 
-// server side connection
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/got";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/got";
 const PORT = process.env.EXPRESS_PORT || 8001;
 
 const app = express();
 
-/* GLOBAL REQUEST LOGGER */
+/* REQUEST LOGGER */
 app.use((req, res, next) => {
     console.log("Incoming request:", req.method, req.url);
     next();
 });
 
-/* CORS + OPTIONS */
+/* CORS */
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
-
-    if (req.method === "OPTIONS") {
-        console.log("OPTIONS request handled");
-        return res.sendStatus(204);
-    }
     next();
 });
 
-/* Accept header: JSON only */
+/* ACCEPT */
 app.use((req, res, next) => {
     const accept = req.headers.accept;
 
@@ -36,30 +28,36 @@ app.use((req, res, next) => {
         !accept.includes("application/json") &&
         accept !== "*/*"
     ) {
-        console.log("Rejecting non-JSON Accept header:", accept);
-        return res.status(406).json({message: "Only application/json is supported"});
+        return res.status(406).json({
+            message: "Only application/json is supported"
+        });
     }
-
     next();
 });
 
-/* Body parser */
+/* BODY PARSER */
 app.use(express.json());
 
 /* ROUTES */
 app.use("/characters", characterRoutes);
 
-/* ROOT TEST ROUTE */
+/* ROOT */
 app.get("/", (req, res) => {
-    console.log("Root route hit");
-    res.send("Hello World!");
+    res.json({
+        message: "Game of Thrones API",
+        _links: {
+            characters: {
+                href: "http://145.24.237.137:8001/characters"
+            }
+        }
+    });
 });
 
-/* MongoDB + server */
+/* START SERVER */
 const startServer = async () => {
     try {
         await mongoose.connect(MONGODB_URI);
-        console.log("MongoDB connected at:", MONGODB_URI);
+        console.log("MongoDB connected");
 
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

@@ -1,88 +1,120 @@
 import express from "express";
 import Character from "../models/characterSchema.js";
 
-console.log("characters router loaded");
-
 const router = express.Router();
+const BASE_URL = "http://145.24.237.137:8001";
 
-/* OPTIONS collection */
+/* OPTIONS COLLECTION */
 router.options("/", (req, res) => {
-    console.log("OPTIONS /characters");
     res.setHeader("Allow", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
     res.sendStatus(204);
 });
 
-/* GET collection */
+/* GET COLLECTION */
 router.get("/", async (req, res) => {
-    console.log("GET /characters");
-    try {
-        const characters = await Character.find({}, "name house");
-        res.json(characters);
-    } catch (err) {
-        console.error("GET collection failed", err);
-        res.status(500).json({message: err.message});
-    }
+    const characters = await Character.find({}, "name house");
+
+    res.json({
+        items: characters.map(c => ({
+            id: c._id,
+            name: c.name,
+            house: c.house,
+            _links: {
+                self: {
+                    href: `${BASE_URL}/characters/${c._id}`
+                }
+            }
+        })),
+        _links: {
+            self: {
+                href: `${BASE_URL}/characters`
+            },
+            collection: {
+                href: `${BASE_URL}/characters`
+            }
+        }
+    });
 });
 
-/* POST new character */
+/* POST COLLECTION */
 router.post("/", async (req, res) => {
-    console.log("POST /characters HIT");
-    console.log("Request body:", req.body);
-
     const {name, house, title} = req.body;
 
     if (!name || !house || !title) {
-        console.log("Validation failed: missing fields");
-        return res.status(400).json({message: "All fields are required"});
+        return res.status(400).json({
+            message: "All fields are required"
+        });
     }
 
-    try {
-        const character = new Character({name, house, title});
-        console.log("Mongoose document created:", character);
+    const character = new Character({name, house, title});
+    const saved = await character.save();
 
-        const savedCharacter = await character.save();
-        console.log("Saved to MongoDB:", savedCharacter);
-
-        res.status(201).json(savedCharacter);
-    } catch (err) {
-        console.error("Save failed:", err);
-        res.status(400).json({message: err.message});
-    }
+    res.status(201).json({
+        id: saved._id,
+        name: saved.name,
+        house: saved.house,
+        title: saved.title,
+        _links: {
+            self: {
+                href: `${BASE_URL}/characters/${saved._id}`
+            },
+            collection: {
+                href: `${BASE_URL}/characters`
+            }
+        }
+    });
 });
 
-/* OPTIONS detail */
+/* OPTIONS DETAIL */
 router.options("/:id", (req, res) => {
-    console.log("OPTIONS /characters/:id");
     res.setHeader("Allow", "GET,PUT,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
     res.sendStatus(204);
 });
 
-/* GET detail */
+/* GET DETAIL */
 router.get("/:id", async (req, res) => {
-    console.log("GET /characters/:id", req.params.id);
     try {
         const character = await Character.findById(req.params.id);
+
         if (!character) {
-            console.log("Character not found");
-            return res.status(404).json({message: "Character not found"});
+            return res.status(404).json({
+                message: "Character not found"
+            });
         }
-        res.json(character);
+
+        res.json({
+            id: character._id,
+            name: character.name,
+            house: character.house,
+            title: character.title,
+            _links: {
+                self: {
+                    href: `${BASE_URL}/characters/${character._id}`
+                },
+                collection: {
+                    href: `${BASE_URL}/characters`
+                }
+            }
+        });
     } catch {
-        console.log("Invalid ID format");
-        res.status(404).json({message: "Character not found"});
+        res.status(404).json({
+            message: "Character not found"
+        });
     }
 });
 
-/* PUT detail */
+/* PUT DETAIL */
 router.put("/:id", async (req, res) => {
-    console.log("PUT /characters/:id", req.params.id);
-    console.log("Request body:", req.body);
-
     const {name, house, title} = req.body;
 
     if (!name || !house || !title) {
-        console.log("Validation failed");
-        return res.status(400).json({message: "All fields are required"});
+        return res.status(400).json({
+            message: "All fields are required"
+        });
     }
 
     try {
@@ -93,32 +125,49 @@ router.put("/:id", async (req, res) => {
         );
 
         if (!updated) {
-            console.log("Character not found");
-            return res.status(404).json({message: "Character not found"});
+            return res.status(404).json({
+                message: "Character not found"
+            });
         }
 
-        console.log("Character updated:", updated);
-        res.json(updated);
-    } catch (err) {
-        console.error("Update failed", err);
-        res.status(404).json({message: "Character not found"});
+        res.json({
+            id: updated._id,
+            name: updated.name,
+            house: updated.house,
+            title: updated.title,
+            _links: {
+                self: {
+                    href: `${BASE_URL}/characters/${updated._id}`
+                },
+                collection: {
+                    href: `${BASE_URL}/characters`
+                }
+            }
+        });
+    } catch {
+        res.status(404).json({
+            message: "Character not found"
+        });
     }
 });
 
-/* DELETE detail */
+/* DELETE DETAIL */
 router.delete("/:id", async (req, res) => {
-    console.log("🗑 DELETE /characters/:id", req.params.id);
     try {
         const deleted = await Character.findByIdAndDelete(req.params.id);
+
         if (!deleted) {
-            console.log("Character not found");
-            return res.status(404).json({message: "Character not found"});
+            return res.status(404).json({
+                message: "Character not found"
+            });
         }
-        console.log("Character deleted");
-        res.json({message: "Character deleted"});
+
+        // CHECKER-COMPLIANT DELETE
+        res.status(204).send();
     } catch {
-        console.log("Delete failed");
-        res.status(404).json({message: "Character not found"});
+        res.status(404).json({
+            message: "Character not found"
+        });
     }
 });
 
