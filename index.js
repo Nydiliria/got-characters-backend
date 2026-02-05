@@ -2,9 +2,13 @@ import express from "express";
 import mongoose from "mongoose";
 import characterRoutes from "./app/routes/characters.js";
 
+// server side connection
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/got";
+const PORT = process.env.EXPRESS_PORT || 8001;
+
 const app = express();
 
-/* 🔍 GLOBAL REQUEST LOGGER */
+/* GLOBAL REQUEST LOGGER */
 app.use((req, res, next) => {
     console.log("Incoming request:", req.method, req.url);
     next();
@@ -54,11 +58,11 @@ app.get("/", (req, res) => {
 /* MongoDB + server */
 const startServer = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log("MongoDB connected");
+        await mongoose.connect(MONGODB_URI);
+        console.log("MongoDB connected at:", MONGODB_URI);
 
-        app.listen(8000, () => {
-            console.log("Server running on port 8000");
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
         });
     } catch (err) {
         console.error("Database connection failed", err);
