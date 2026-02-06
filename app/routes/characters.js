@@ -12,9 +12,30 @@ router.options("/", (req, res) => {
     res.sendStatus(204);
 });
 
-/* GET COLLECTION */
+/* GET COLLECTION (FILTER + PAGINATION) */
 router.get("/", async (req, res) => {
-    const characters = await Character.find({}, "name house");
+    const filter = {};
+
+    if (req.query.house) {
+        filter.house = req.query.house;
+    }
+
+    if (req.query.search) {
+        filter.name = {$regex: req.query.search, $options: "i"};
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+
+    let query = Character.find(filter, "name house");
+
+    if (limit) {
+        query = query
+            .skip((page - 1) * limit)
+            .limit(limit);
+    }
+
+    const characters = await query;
 
     res.json({
         items: characters.map(c => ({
@@ -29,9 +50,6 @@ router.get("/", async (req, res) => {
         })),
         _links: {
             self: {
-                href: `${BASE_URL}/characters`
-            },
-            collection: {
                 href: `${BASE_URL}/characters`
             }
         }
@@ -69,8 +87,8 @@ router.post("/", async (req, res) => {
 
 /* OPTIONS DETAIL */
 router.options("/:id", (req, res) => {
-    res.setHeader("Allow", "GET,PUT,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,DELETE,OPTIONS");
+    res.setHeader("Allow", "GET,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
     res.sendStatus(204);
 });
@@ -151,6 +169,42 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+/* PATCH DETAIL */
+router.patch("/:id", async (req, res) => {
+    try {
+        const updated = await Character.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            {new: true, runValidators: true}
+        );
+
+        if (!updated) {
+            return res.status(404).json({
+                message: "Character not found"
+            });
+        }
+
+        res.json({
+            id: updated._id,
+            name: updated.name,
+            house: updated.house,
+            title: updated.title,
+            _links: {
+                self: {
+                    href: `${BASE_URL}/characters/${updated._id}`
+                },
+                collection: {
+                    href: `${BASE_URL}/characters`
+                }
+            }
+        });
+    } catch {
+        res.status(404).json({
+            message: "Character not found"
+        });
+    }
+});
+
 /* DELETE DETAIL */
 router.delete("/:id", async (req, res) => {
     try {
@@ -162,7 +216,6 @@ router.delete("/:id", async (req, res) => {
             });
         }
 
-        // CHECKER-COMPLIANT DELETE
         res.status(204).send();
     } catch {
         res.status(404).json({

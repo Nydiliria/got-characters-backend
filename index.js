@@ -19,20 +19,19 @@ app.use((req, res, next) => {
     next();
 });
 
-/* ACCEPT */
+/* ACCEPT HEADER CHECK */
 app.use((req, res, next) => {
-    const accept = req.headers.accept;
-
+    const accept = req.headers.accept || "";
     if (
-        accept &&
-        !accept.includes("application/json") &&
-        accept !== "*/*"
+        accept.includes("application/json") ||
+        accept.includes("*/*")
     ) {
-        return res.status(406).json({
+        next();
+    } else {
+        res.status(406).json({
             message: "Only application/json is supported"
         });
     }
-    next();
 });
 
 /* BODY PARSER */
