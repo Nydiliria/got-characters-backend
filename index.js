@@ -7,7 +7,7 @@ const PORT = process.env.EXPRESS_PORT || 8001;
 
 const app = express();
 
-/* REQUEST LOGGER */
+/* REQUESTS */
 app.use((req, res, next) => {
     console.log("Incoming request:", req.method, req.url);
     next();
@@ -21,6 +21,10 @@ app.use((req, res, next) => {
 
 /* ACCEPT HEADER CHECK */
 app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+        return next();
+    }
+
     const accept = req.headers.accept || "";
     if (
         accept.includes("application/json") ||
@@ -34,10 +38,9 @@ app.use((req, res, next) => {
     }
 });
 
-/* BODY PARSER */
 app.use(express.json());
 
-/* ROUTES */
+/* ROUTE */
 app.use("/characters", characterRoutes);
 
 /* ROOT */

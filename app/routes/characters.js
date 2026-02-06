@@ -4,7 +4,7 @@ import Character from "../models/characterSchema.js";
 const router = express.Router();
 const BASE_URL = "http://145.24.237.137:8001";
 
-/* OPTIONS COLLECTION */
+/* OPTIONS  */
 router.options("/", (req, res) => {
     res.setHeader("Allow", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -12,30 +12,9 @@ router.options("/", (req, res) => {
     res.sendStatus(204);
 });
 
-/* GET COLLECTION (FILTER + PAGINATION) */
+/* GET ALL  */
 router.get("/", async (req, res) => {
-    const filter = {};
-
-    if (req.query.house) {
-        filter.house = req.query.house;
-    }
-
-    if (req.query.search) {
-        filter.name = {$regex: req.query.search, $options: "i"};
-    }
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = req.query.limit ? parseInt(req.query.limit) : null;
-
-    let query = Character.find(filter, "name house");
-
-    if (limit) {
-        query = query
-            .skip((page - 1) * limit)
-            .limit(limit);
-    }
-
-    const characters = await query;
+    const characters = await Character.find({}, "name house");
 
     res.json({
         items: characters.map(c => ({
@@ -43,27 +22,22 @@ router.get("/", async (req, res) => {
             name: c.name,
             house: c.house,
             _links: {
-                self: {
-                    href: `${BASE_URL}/characters/${c._id}`
-                }
+                self: {href: `${BASE_URL}/characters/${c._id}`}
             }
         })),
         _links: {
-            self: {
-                href: `${BASE_URL}/characters`
-            }
+            self: {href: `${BASE_URL}/characters`},
+            collection: {href: `${BASE_URL}/characters`}
         }
     });
 });
 
-/* POST COLLECTION */
+/* POST */
 router.post("/", async (req, res) => {
     const {name, house, title} = req.body;
 
     if (!name || !house || !title) {
-        return res.status(400).json({
-            message: "All fields are required"
-        });
+        return res.status(400).json({message: "All fields are required"});
     }
 
     const character = new Character({name, house, title});
@@ -75,33 +49,27 @@ router.post("/", async (req, res) => {
         house: saved.house,
         title: saved.title,
         _links: {
-            self: {
-                href: `${BASE_URL}/characters/${saved._id}`
-            },
-            collection: {
-                href: `${BASE_URL}/characters`
-            }
+            self: {href: `${BASE_URL}/characters/${saved._id}`},
+            collection: {href: `${BASE_URL}/characters`}
         }
     });
 });
 
-/* OPTIONS DETAIL */
+/* OPTIONS*/
 router.options("/:id", (req, res) => {
-    res.setHeader("Allow", "GET,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Allow", "GET,PUT,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
     res.sendStatus(204);
 });
 
-/* GET DETAIL */
+/* GET ID */
 router.get("/:id", async (req, res) => {
     try {
         const character = await Character.findById(req.params.id);
 
         if (!character) {
-            return res.status(404).json({
-                message: "Character not found"
-            });
+            return res.status(404).json({message: "Character not found"});
         }
 
         res.json({
@@ -110,29 +78,21 @@ router.get("/:id", async (req, res) => {
             house: character.house,
             title: character.title,
             _links: {
-                self: {
-                    href: `${BASE_URL}/characters/${character._id}`
-                },
-                collection: {
-                    href: `${BASE_URL}/characters`
-                }
+                self: {href: `${BASE_URL}/characters/${character._id}`},
+                collection: {href: `${BASE_URL}/characters`}
             }
         });
     } catch {
-        res.status(404).json({
-            message: "Character not found"
-        });
+        res.status(404).json({message: "Character not found"});
     }
 });
 
-/* PUT DETAIL */
+/* PUT UPDATE */
 router.put("/:id", async (req, res) => {
     const {name, house, title} = req.body;
 
     if (!name || !house || !title) {
-        return res.status(400).json({
-            message: "All fields are required"
-        });
+        return res.status(400).json({message: "All fields are required"});
     }
 
     try {
@@ -142,11 +102,7 @@ router.put("/:id", async (req, res) => {
             {new: true, runValidators: true}
         );
 
-        if (!updated) {
-            return res.status(404).json({
-                message: "Character not found"
-            });
-        }
+        if (!updated) return res.status(404).json({message: "Character not found"});
 
         res.json({
             id: updated._id,
@@ -154,22 +110,16 @@ router.put("/:id", async (req, res) => {
             house: updated.house,
             title: updated.title,
             _links: {
-                self: {
-                    href: `${BASE_URL}/characters/${updated._id}`
-                },
-                collection: {
-                    href: `${BASE_URL}/characters`
-                }
+                self: {href: `${BASE_URL}/characters/${updated._id}`},
+                collection: {href: `${BASE_URL}/characters`}
             }
         });
     } catch {
-        res.status(404).json({
-            message: "Character not found"
-        });
+        res.status(404).json({message: "Character not found"});
     }
 });
 
-/* PATCH DETAIL */
+/* PATCH */
 router.patch("/:id", async (req, res) => {
     try {
         const updated = await Character.findByIdAndUpdate(
@@ -178,11 +128,7 @@ router.patch("/:id", async (req, res) => {
             {new: true, runValidators: true}
         );
 
-        if (!updated) {
-            return res.status(404).json({
-                message: "Character not found"
-            });
-        }
+        if (!updated) return res.status(404).json({message: "Character not found"});
 
         res.json({
             id: updated._id,
@@ -190,37 +136,25 @@ router.patch("/:id", async (req, res) => {
             house: updated.house,
             title: updated.title,
             _links: {
-                self: {
-                    href: `${BASE_URL}/characters/${updated._id}`
-                },
-                collection: {
-                    href: `${BASE_URL}/characters`
-                }
+                self: {href: `${BASE_URL}/characters/${updated._id}`},
+                collection: {href: `${BASE_URL}/characters`}
             }
         });
     } catch {
-        res.status(404).json({
-            message: "Character not found"
-        });
+        res.status(404).json({message: "Character not found"});
     }
 });
 
-/* DELETE DETAIL */
+/* DELETE */
 router.delete("/:id", async (req, res) => {
     try {
         const deleted = await Character.findByIdAndDelete(req.params.id);
 
-        if (!deleted) {
-            return res.status(404).json({
-                message: "Character not found"
-            });
-        }
+        if (!deleted) return res.status(404).json({message: "Character not found"});
 
         res.status(204).send();
     } catch {
-        res.status(404).json({
-            message: "Character not found"
-        });
+        res.status(404).json({message: "Character not found"});
     }
 });
 
